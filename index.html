@@ -22,30 +22,35 @@ h1{text-align:center;}
 .free{color:green;}
 .busy{color:orange;font-weight:bold;}
 .full{color:red;font-weight:bold;}
+button{
+  padding:6px 12px;
+  margin-top:6px;
+}
 </style>
 </head>
 
 <body>
 <h1>🚗 沖国 駐車場状況</h1>
+
 <div id="parkingList"></div>
 
 <script>
-/* ===== 初期データ ===== */
+/* ===== 初期データ（位置は仮） ===== */
 const DEFAULT_PARKINGS = [
- {id:1,name:"第1駐車場",max:200,now:50},
- {id:2,name:"第2駐車場",max:180,now:30},
- {id:3,name:"第3駐車場",max:150,now:120},
- {id:4,name:"第4駐車場",max:100,now:20},
- {id:5,name:"第5駐車場",max:120,now:90},
- {id:6,name:"第6駐車場",max:80, now:70},
- {id:7,name:"第7駐車場",max:60, now:55}
+ {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
+ {id:2,name:"第2駐車場",lat:26.2630,lng:127.7558,max:180,now:30},
+ {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120},
+ {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
+ {id:5,name:"第5駐車場",lat:26.2615,lng:127.7580,max:120,now:90},
+ {id:6,name:"第6駐車場",lat:26.2609,lng:127.7575,max:80, now:70},
+ {id:7,name:"第7駐車場",lat:26.2605,lng:127.7569,max:60, now:55}
 ];
 
-/* ===== localStorage安全チェック ===== */
+/* ===== localStorage 安全ロード ===== */
 function loadParkings(){
  try{
    const data = JSON.parse(localStorage.getItem("parkings"));
-   if(!Array.isArray(data)) throw "壊れてる";
+   if(!Array.isArray(data)) throw "broken";
    return data;
  }catch(e){
    localStorage.setItem("parkings", JSON.stringify(DEFAULT_PARKINGS));
@@ -71,6 +76,9 @@ function render(){
    div.innerHTML = `
      <h3>${p.name}</h3>
      <p class="${cls}">${text}（${remain}台）</p>
+     <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank">
+       <button>📍 マップで見る</button>
+     </a>
    `;
    list.appendChild(div);
  });
