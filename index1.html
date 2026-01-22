@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>沖国 駐車場状況</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<style>
+body{
+  font-family: system-ui, sans-serif;
+  background:#f5f5f5;
+  margin:0;
+  padding:10px;
+}
+h1{text-align:center;}
+
+.parking{
+  background:#fff;
+  padding:12px;
+  margin-bottom:10px;
+  border-radius:10px;
+}
+
+.free{color:green;}
+.busy{color:orange;font-weight:bold;}
+.full{color:red;font-weight:bold;}
+
+.admin{
+  background:#eef;
+  padding:10px;
+  margin-bottom:15px;
+  border-radius:10px;
+}
+
+input{
+  width:100%;
+  padding:5px;
+  margin-bottom:5px;
+}
+
+button{
+  padding:6px 10px;
+  margin-top:5px;
+}
+
+.updated{
+  animation: flash 0.8s;
+}
+@keyframes flash{
+  0%{background:#d4f8d4;}
+  100%{background:#fff;}
+}
+</style>
+</head>
+
+<body>
+<h1>🚗 沖国 駐車場状況</h1>
+
+<div class="admin" id="adminArea">
+  <button onclick="showLogin()">管理者ログイン</button>
+</div>
+
+<div class="admin" id="loginArea" style="display:none">
+  <input id="loginId" placeholder="ID">
+  <input id="loginPass" type="password" placeholder="パスワード">
+  <button onclick="login()">ログイン</button>
+</div>
+
+<div class="admin" id="logoutArea" style="display:none">
+  <button onclick="logout()">ログアウト</button>
+</div>
+
+<!-- 更新ボタン -->
+<div class="admin" id="updateArea" style="display:none">
+  <button onclick="saveAll()">💾 更新する</button>
+  <span id="updateMsg" style="margin-left:10px;"></span>
+</div>
+
+<div id="parkingList"></div>
+
+<script>
+const DEFAULT_PARKINGS = [
+ {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
+ {id:2,name:"第2駐車場",lat:26.2630,lng:127.7558,max:180,now:30},
+ {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120},
+ {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
+ {id:5,name:"第5駐車場",lat:26.2615,lng:127.7580,max:120,now:90},
+ {id:6,name:"第6駐車場",lat:26.2609,lng:127.7575,max:80, now:70},
+ {id:7,name:"第7駐車場",lat:26.2605,lng:127.7569,max:60, now:55}
+];
+
+if(!localStorage.getItem("parkings")){
+ localStorage.setItem("parkings",JSON.stringify(DEFAULT_PARKINGS));
+}
+if(!localStorage.getItem("admin")){
+ localStorage.setItem("admin",JSON.stringify({id:"admin",pass:"1234"}));
+}
+
+let isAdmin=false;
+let tempParkings=null;
+
+function render(){
+ let parkings;
+ try{
+   parkings = isAdmin && tempParkings
+     ? tempParkings
+     : JSON.parse(localStorage.getItem("parkings"));
+   if(!Array.isArray(parkings)) throw "error";
+ }catch{
+   parkings = DEFAULT_PARKINGS;
+   localStorage.setItem("parkings",JSON.stringify(DEFAULT_PARKINGS));
+ }
+
+ const list=document.getElementById("parkingList");
+ list.innerHTML="";
+
+ parkings.forEach(p=>{
+   const remain=Math.max(p.max-p.now,0);
+   let status="free", text="空きあり";
+   if(remain===0){status="full";text="満車";}
+   else if(remain<10){status="busy";text="混雑";}
+
+   const div=document.createElement("div");
+   div.className="parking";
+   div.innerHTML=`
+     <h3>${p.name}</h3>
+     <p class="${status}">${text}（${remain}台）</p>
+     <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank">
+       <button>📍 マップで見る</button>
+     </a>
+   `;
+
+   if(isAdmin){
+     div.innerHTML+=`
+     <hr>
+     <label>現在台数</label>
+     <input type="number" value="${p.now}"
+       onchange="tempUpdate(${p.id},'now',this.value)">
+     <label>最大台数</label>
+     <input type="number" value="${p.max}"
+       onchange="tempUpdate(${p.id},'max',this.value)">
+     `;
+   }
+
+   list.appendChild(div);
+ });
+}
+
+function tempUpdate(id,key,value){
+ if(!tempParkings) return;
+ const p=tempParkings.find(x=>x.id===id);
+ value=Number(value);
+ if(isNaN(value))return;
+
+ if(key==="now"){
+   value=Math.max(0,Math.min(value,p.max));
+ }
+ if(key==="max"){
+   value=Math.max(0,value);
+   if(p.now>value)p.now=value;
+ }
+
+ p[key]=value;
+ render();
+}
+
+function saveAll(){
+ localStorage.setItem("parkings",JSON.stringify(tempParkings));
+ document.getElementById("updateMsg").textContent="✅ 更新しました";
+
+ const area=document.getElementById("parkingList");
+ area.classList.add("updated");
+ setTimeout(()=>area.classList.remove("updated"),800);
+}
+
+function showLogin(){
+ document.getElementById("loginArea").style.display="block";
+}
+
+function login(){
+ const id=document.getElementById("loginId").value;
+ const pass=document.getElementById("loginPass").value;
+ const admin=JSON.parse(localStorage.getItem("admin"));
+
+ if(id===admin.id && pass===admin.pass){
+   isAdmin=true;
+   tempParkings=JSON.parse(localStorage.getItem("parkings"));
+   document.getElementById("loginArea").style.display="none";
+   document.getElementById("adminArea").style.display="none";
+   document.getElementById("logoutArea").style.display="block";
+   document.getElementById("updateArea").style.display="block";
+   render();
+ }else{
+   alert("IDかパスワード違う");
+ }
+}
+
+function logout(){
+ isAdmin=false;
+ tempParkings=null;
+ document.getElementById("updateArea").style.display="none";
+ document.getElementById("updateMsg").textContent="";
+ document.getElementById("logoutArea").style.display="none";
+ document.getElementById("adminArea").style.display="block";
+ render();
+}
+
+render();
+</script>
+</body>
+</html>
