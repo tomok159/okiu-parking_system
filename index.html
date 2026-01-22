@@ -5,23 +5,22 @@
 <title>沖国 駐車場状況</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<script src="script.js"></script>
-<script>
+<style>
 body{
-  font-family: system-ui, sans-serif;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   background:#f5f5f5;
   margin:0;
   padding:10px;
 }
-h1{text-align:center;}
-
+h1{
+  text-align:center;
+}
 .parking{
   background:#fff;
   padding:12px;
   margin-bottom:10px;
   border-radius:10px;
 }
-
 .free{color:green;}
 .busy{color:orange;font-weight:bold;}
 .full{color:red;font-weight:bold;}
@@ -35,21 +34,19 @@ h1{text-align:center;}
 
 input{
   width:100%;
-  padding:5px;
-  margin-bottom:5px;
+  padding:8px;
+  margin-bottom:8px;
+  font-size:16px;
 }
-
 button{
-  padding:6px 10px;
-  margin-top:5px;
+  padding:8px 12px;
+  font-size:16px;
 }
 
 .updated{
-  animation: flash 0.8s;
-}
-@keyframes flash{
-  0%{background:#d4f8d4;}
-  100%{background:#fff;}
+  color:#007aff;
+  font-size:14px;
+  margin-top:5px;
 }
 </style>
 </head>
@@ -69,145 +66,142 @@ button{
 
 <div class="admin" id="logoutArea" style="display:none">
   <button onclick="logout()">ログアウト</button>
-</div>
-
-<!-- 更新ボタン -->
-<div class="admin" id="updateArea" style="display:none">
-  <button onclick="saveAll()">💾 更新する</button>
-  <span id="updateMsg" style="margin-left:10px;"></span>
+  <div id="updateMessage" class="updated"></div>
 </div>
 
 <div id="parkingList"></div>
 
 <script>
+/* ===== 初期データ ===== */
 const DEFAULT_PARKINGS = [
- {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
- {id:2,name:"第2駐車場",lat:26.2630,lng:127.7558,max:180,now:30},
- {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120},
- {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
- {id:5,name:"第5駐車場",lat:26.2615,lng:127.7580,max:120,now:90},
- {id:6,name:"第6駐車場",lat:26.2609,lng:127.7575,max:80, now:70},
- {id:7,name:"第7駐車場",lat:26.2605,lng:127.7569,max:60, now:55}
+  {id:1,name:"第1駐車場",max:200,now:50},
+  {id:2,name:"第2駐車場",max:180,now:30},
+  {id:3,name:"第3駐車場",max:150,now:120},
+  {id:4,name:"第4駐車場",max:100,now:20},
+  {id:5,name:"第5駐車場",max:120,now:90},
+  {id:6,name:"第6駐車場",max:80, now:70},
+  {id:7,name:"第7駐車場",max:60, now:55}
 ];
 
+const ADMIN = {id:"admin", pass:"1234"};
+
+let isAdmin = false;
+let editedData = null;
+
+/* ===== 初期化 ===== */
 if(!localStorage.getItem("parkings")){
- localStorage.setItem("parkings",JSON.stringify(DEFAULT_PARKINGS));
-}
-if(!localStorage.getItem("admin")){
- localStorage.setItem("admin",JSON.stringify({id:"admin",pass:"1234"}));
+  localStorage.setItem("parkings", JSON.stringify(DEFAULT_PARKINGS));
 }
 
-let isAdmin=false;
-let tempParkings=null;
-
+/* ===== 描画 ===== */
 function render(){
- let parkings;
- try{
-   parkings = isAdmin && tempParkings
-     ? tempParkings
-     : JSON.parse(localStorage.getItem("parkings"));
-   if(!Array.isArray(parkings)) throw "error";
- }catch{
-   parkings = DEFAULT_PARKINGS;
-   localStorage.setItem("parkings",JSON.stringify(DEFAULT_PARKINGS));
- }
+  const list = document.getElementById("parkingList");
+  list.innerHTML = "";
 
- const list=document.getElementById("parkingList");
- list.innerHTML="";
+  const parkings = JSON.parse(localStorage.getItem("parkings")) || [];
 
- parkings.forEach(p=>{
-   const remain=Math.max(p.max-p.now,0);
-   let status="free", text="空きあり";
-   if(remain===0){status="full";text="満車";}
-   else if(remain<10){status="busy";text="混雑";}
+  parkings.forEach(p=>{
+    const remain = Math.max(p.max - p.now, 0);
+    let status = "free";
+    let text = "空きあり";
 
-   const div=document.createElement("div");
-   div.className="parking";
-   div.innerHTML=`
-     <h3>${p.name}</h3>
-     <p class="${status}">${text}（${remain}台）</p>
-     <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank">
-       <button>📍 マップで見る</button>
-     </a>
-   `;
+    if(remain === 0){
+      status = "full";
+      text = "満車";
+    }else if(remain < 10){
+      status = "busy";
+      text = "混雑";
+    }
 
-   if(isAdmin){
-     div.innerHTML+=`
-     <hr>
-     <label>現在台数</label>
-     <input type="number" value="${p.now}"
-       onchange="tempUpdate(${p.id},'now',this.value)">
-     <label>最大台数</label>
-     <input type="number" value="${p.max}"
-       onchange="tempUpdate(${p.id},'max',this.value)">
-     `;
-   }
+    const div = document.createElement("div");
+    div.className = "parking";
 
-   list.appendChild(div);
- });
+    div.innerHTML = `
+      <h3>${p.name}</h3>
+      <p class="${status}">${text}（${remain}台）</p>
+    `;
+
+    if(isAdmin){
+      div.innerHTML += `
+        <label>現在台数</label>
+        <input type="number" value="${p.now}" onchange="edit(${p.id}, 'now', this.value)">
+        <label>最大台数</label>
+        <input type="number" value="${p.max}" onchange="edit(${p.id}, 'max', this.value)">
+      `;
+    }
+
+    list.appendChild(div);
+  });
 }
 
-function tempUpdate(id,key,value){
- if(!tempParkings) return;
- const p=tempParkings.find(x=>x.id===id);
- value=Number(value);
- if(isNaN(value))return;
+/* ===== 編集（即保存しない） ===== */
+function edit(id, key, value){
+  if(!editedData){
+    editedData = JSON.parse(localStorage.getItem("parkings"));
+  }
 
- if(key==="now"){
-   value=Math.max(0,Math.min(value,p.max));
- }
- if(key==="max"){
-   value=Math.max(0,value);
-   if(p.now>value)p.now=value;
- }
+  const p = editedData.find(x=>x.id===id);
+  value = Number(value);
 
- p[key]=value;
- render();
+  if(isNaN(value)) return;
+
+  if(key === "now"){
+    p.now = Math.max(0, Math.min(value, p.max));
+  }
+  if(key === "max"){
+    p.max = Math.max(0, value);
+    if(p.now > p.max) p.now = p.max;
+  }
+
+  document.getElementById("updateMessage").textContent = "⚠️ 未更新の変更があります";
 }
 
-function saveAll(){
- localStorage.setItem("parkings",JSON.stringify(tempParkings));
- document.getElementById("updateMsg").textContent="✅ 更新しました";
+/* ===== 更新ボタン ===== */
+function save(){
+  if(!editedData) return;
 
- const area=document.getElementById("parkingList");
- area.classList.add("updated");
- setTimeout(()=>area.classList.remove("updated"),800);
+  localStorage.setItem("parkings", JSON.stringify(editedData));
+  editedData = null;
+
+  document.getElementById("updateMessage").textContent = "✅ 更新しました";
+  render();
 }
 
+/* ===== ログイン関連 ===== */
 function showLogin(){
- document.getElementById("loginArea").style.display="block";
+  document.getElementById("loginArea").style.display = "block";
 }
 
 function login(){
- const id=document.getElementById("loginId").value;
- const pass=document.getElementById("loginPass").value;
- const admin=JSON.parse(localStorage.getItem("admin"));
+  const id = document.getElementById("loginId").value;
+  const pass = document.getElementById("loginPass").value;
 
- if(id===admin.id && pass===admin.pass){
-   isAdmin=true;
-   tempParkings=JSON.parse(localStorage.getItem("parkings"));
-   document.getElementById("loginArea").style.display="none";
-   document.getElementById("adminArea").style.display="none";
-   document.getElementById("logoutArea").style.display="block";
-   document.getElementById("updateArea").style.display="block";
-   render();
- }else{
-   alert("IDかパスワード違う");
- }
+  if(id === ADMIN.id && pass === ADMIN.pass){
+    isAdmin = true;
+    document.getElementById("loginArea").style.display = "none";
+    document.getElementById("adminArea").style.display = "none";
+    document.getElementById("logoutArea").style.display = "block";
+
+    document.getElementById("logoutArea").insertAdjacentHTML(
+      "beforeend",
+      `<button onclick="save()">更新する</button>`
+    );
+
+    render();
+  }else{
+    alert("IDかパスワードが違うよ");
+  }
 }
 
 function logout(){
- isAdmin=false;
- tempParkings=null;
- document.getElementById("updateArea").style.display="none";
- document.getElementById("updateMsg").textContent="";
- document.getElementById("logoutArea").style.display="none";
- document.getElementById("adminArea").style.display="block";
- render();
+  isAdmin = false;
+  editedData = null;
+  document.getElementById("logoutArea").style.display = "none";
+  document.getElementById("adminArea").style.display = "block";
+  render();
 }
 
 render();
 </script>
 </body>
 </html>
-
