@@ -5,7 +5,6 @@
 <title>沖国 駐車場状況</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<!-- manifest（PWA用・無くてもOK） -->
 <link rel="manifest" href="manifest.json">
 
 <style>
@@ -69,7 +68,6 @@ button{
 
 <script>
 /* ===== 初期データ ===== */
-<script>
 const DEFAULT_PARKINGS = [
  {id:1,name:"第1駐車場",lat:0,lng:0,max:200,now:50},
  {id:2,name:"第2駐車場",lat:0,lng:0,max:180,now:30},
@@ -79,7 +77,6 @@ const DEFAULT_PARKINGS = [
  {id:6,name:"第6駐車場",lat:0,lng:0,max:80, now:70},
  {id:7,name:"第7駐車場",lat:0,lng:0,max:60, now:55}
 ];
-
 
 if(!localStorage.getItem("parkings")){
  localStorage.setItem("parkings",JSON.stringify(DEFAULT_PARKINGS));
@@ -116,9 +113,9 @@ function render(){
      div.innerHTML+=`
        <hr>
        <label>現在台数</label>
-       <input type="number" value="${p.now}" id="now-${p.id}">
+       <input type="number" id="now-${p.id}" value="${p.now}">
        <label>最大台数</label>
-       <input type="number" value="${p.max}" id="max-${p.id}">
+       <input type="number" id="max-${p.id}" value="${p.max}">
        <button onclick="save(${p.id})">更新</button>
      `;
    }
@@ -135,13 +132,10 @@ function save(id){
  const now=Number(document.getElementById(`now-${id}`).value);
  const max=Number(document.getElementById(`max-${id}`).value);
 
- if(isNaN(now)||isNaN(max))return;
-
  p.max=Math.max(0,max);
  p.now=Math.max(0,Math.min(now,p.max));
 
  localStorage.setItem("parkings",JSON.stringify(parkings));
-
  document.getElementById("updateMsg").textContent="✅ 更新しました";
  render();
 }
@@ -150,7 +144,6 @@ function save(id){
 function showLogin(){
  document.getElementById("loginArea").style.display="block";
 }
-
 function login(){
  const id=document.getElementById("loginId").value;
  const pass=document.getElementById("loginPass").value;
@@ -166,7 +159,6 @@ function login(){
    alert("IDかパスワードが違います");
  }
 }
-
 function logout(){
  isAdmin=false;
  document.getElementById("logoutArea").style.display="none";
@@ -174,15 +166,7 @@ function logout(){
  render();
 }
 
-/* ===== 初期描画 ===== */
 render();
-
-/* ===== Service Worker（あれば） ===== */
-if("serviceWorker" in navigator){
- navigator.serviceWorker.register("service-worker.js");
-}
 </script>
-
 </body>
 </html>
-
