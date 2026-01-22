@@ -5,8 +5,6 @@
 <title>沖国 駐車場状況</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-<link rel="manifest" href="manifest.json">
-
 <style>
 body{
   font-family: system-ui, sans-serif;
@@ -24,146 +22,58 @@ h1{text-align:center;}
 .free{color:green;}
 .busy{color:orange;font-weight:bold;}
 .full{color:red;font-weight:bold;}
-.admin{
-  background:#eef;
-  padding:10px;
-  margin-bottom:15px;
-  border-radius:10px;
-}
-input{
-  width:100%;
-  padding:6px;
-  margin-bottom:6px;
-}
-button{
-  padding:6px 12px;
-  margin-top:5px;
-}
-.updated{
-  color:blue;
-  font-size:0.9em;
-}
 </style>
 </head>
 
 <body>
 <h1>🚗 沖国 駐車場状況</h1>
-
-<div class="admin" id="adminArea">
-  <button onclick="showLogin()">管理者ログイン</button>
-</div>
-
-<div class="admin" id="loginArea" style="display:none">
-  <input id="loginId" placeholder="ID">
-  <input id="loginPass" type="password" placeholder="パスワード">
-  <button onclick="login()">ログイン</button>
-</div>
-
-<div class="admin" id="logoutArea" style="display:none">
-  <button onclick="logout()">ログアウト</button>
-  <p class="updated" id="updateMsg"></p>
-</div>
-
 <div id="parkingList"></div>
 
 <script>
 /* ===== 初期データ ===== */
 const DEFAULT_PARKINGS = [
- {id:1,name:"第1駐車場",lat:0,lng:0,max:200,now:50},
- {id:2,name:"第2駐車場",lat:0,lng:0,max:180,now:30},
- {id:3,name:"第3駐車場",lat:0,lng:0,max:150,now:120},
- {id:4,name:"第4駐車場",lat:0,lng:0,max:100,now:20},
- {id:5,name:"第5駐車場",lat:0,lng:0,max:120,now:90},
- {id:6,name:"第6駐車場",lat:0,lng:0,max:80, now:70},
- {id:7,name:"第7駐車場",lat:0,lng:0,max:60, now:55}
+ {id:1,name:"第1駐車場",max:200,now:50},
+ {id:2,name:"第2駐車場",max:180,now:30},
+ {id:3,name:"第3駐車場",max:150,now:120},
+ {id:4,name:"第4駐車場",max:100,now:20},
+ {id:5,name:"第5駐車場",max:120,now:90},
+ {id:6,name:"第6駐車場",max:80, now:70},
+ {id:7,name:"第7駐車場",max:60, now:55}
 ];
 
-if(!localStorage.getItem("parkings")){
- localStorage.setItem("parkings",JSON.stringify(DEFAULT_PARKINGS));
+/* ===== localStorage安全チェック ===== */
+function loadParkings(){
+ try{
+   const data = JSON.parse(localStorage.getItem("parkings"));
+   if(!Array.isArray(data)) throw "壊れてる";
+   return data;
+ }catch(e){
+   localStorage.setItem("parkings", JSON.stringify(DEFAULT_PARKINGS));
+   return DEFAULT_PARKINGS;
+ }
 }
-if(!localStorage.getItem("admin")){
- localStorage.setItem("admin",JSON.stringify({id:"admin",pass:"1234"}));
-}
-
-let isAdmin=false;
 
 /* ===== 表示 ===== */
 function render(){
- const list=document.getElementById("parkingList");
- list.innerHTML="";
- const parkings=JSON.parse(localStorage.getItem("parkings"));
+ const list = document.getElementById("parkingList");
+ list.innerHTML = "";
+
+ const parkings = loadParkings();
 
  parkings.forEach(p=>{
-   const remain=Math.max(p.max-p.now,0);
-   let status="free", text="空きあり";
-   if(remain===0){status="full";text="満車";}
-   else if(remain<10){status="busy";text="混雑";}
+   const remain = Math.max(p.max - p.now, 0);
+   let cls="free", text="空きあり";
+   if(remain===0){cls="full";text="満車";}
+   else if(remain<10){cls="busy";text="混雑";}
 
-   const div=document.createElement("div");
+   const div = document.createElement("div");
    div.className="parking";
-   div.innerHTML=`
+   div.innerHTML = `
      <h3>${p.name}</h3>
-     <p class="${status}">${text}（${remain}台）</p>
-     <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank">
-       <button>📍 マップで見る</button>
-     </a>
+     <p class="${cls}">${text}（${remain}台）</p>
    `;
-
-   if(isAdmin){
-     div.innerHTML+=`
-       <hr>
-       <label>現在台数</label>
-       <input type="number" id="now-${p.id}" value="${p.now}">
-       <label>最大台数</label>
-       <input type="number" id="max-${p.id}" value="${p.max}">
-       <button onclick="save(${p.id})">更新</button>
-     `;
-   }
-
    list.appendChild(div);
  });
-}
-
-/* ===== 更新 ===== */
-function save(id){
- const parkings=JSON.parse(localStorage.getItem("parkings"));
- const p=parkings.find(x=>x.id===id);
-
- const now=Number(document.getElementById(`now-${id}`).value);
- const max=Number(document.getElementById(`max-${id}`).value);
-
- p.max=Math.max(0,max);
- p.now=Math.max(0,Math.min(now,p.max));
-
- localStorage.setItem("parkings",JSON.stringify(parkings));
- document.getElementById("updateMsg").textContent="✅ 更新しました";
- render();
-}
-
-/* ===== ログイン ===== */
-function showLogin(){
- document.getElementById("loginArea").style.display="block";
-}
-function login(){
- const id=document.getElementById("loginId").value;
- const pass=document.getElementById("loginPass").value;
- const admin=JSON.parse(localStorage.getItem("admin"));
-
- if(id===admin.id && pass===admin.pass){
-   isAdmin=true;
-   document.getElementById("loginArea").style.display="none";
-   document.getElementById("adminArea").style.display="none";
-   document.getElementById("logoutArea").style.display="block";
-   render();
- }else{
-   alert("IDかパスワードが違います");
- }
-}
-function logout(){
- isAdmin=false;
- document.getElementById("logoutArea").style.display="none";
- document.getElementById("adminArea").style.display="block";
- render();
 }
 
 render();
