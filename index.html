@@ -69,13 +69,17 @@ button{
 
 <script>
 /* ===== 初期データ ===== */
+<script>
 const DEFAULT_PARKINGS = [
- {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
- {id:2,name:"第2駐車場",lat:26.2630,lng:127.7558,max:180,now:30},
- {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120},
- {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
- {id:5,name:"第5駐車場",lat:26.2615,lng:127.7580,max:120,now:90}
+ {id:1,name:"第1駐車場",lat:0,lng:0,max:200,now:50},
+ {id:2,name:"第2駐車場",lat:0,lng:0,max:180,now:30},
+ {id:3,name:"第3駐車場",lat:0,lng:0,max:150,now:120},
+ {id:4,name:"第4駐車場",lat:0,lng:0,max:100,now:20},
+ {id:5,name:"第5駐車場",lat:0,lng:0,max:120,now:90},
+ {id:6,name:"第6駐車場",lat:0,lng:0,max:80, now:70},
+ {id:7,name:"第7駐車場",lat:0,lng:0,max:60, now:55}
 ];
+
 
 if(!localStorage.getItem("parkings")){
  localStorage.setItem("parkings",JSON.stringify(DEFAULT_PARKINGS));
@@ -181,3 +185,4 @@ if("serviceWorker" in navigator){
 
 </body>
 </html>
+
