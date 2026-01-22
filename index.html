@@ -5,16 +5,17 @@
 <title>沖国 駐車場状況</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+<!-- manifest（PWA用・無くてもOK） -->
+<link rel="manifest" href="manifest.json">
+
 <style>
 body{
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-family: system-ui, sans-serif;
   background:#f5f5f5;
   margin:0;
   padding:10px;
 }
-h1{
-  text-align:center;
-}
+h1{text-align:center;}
 .parking{
   background:#fff;
   padding:12px;
@@ -24,29 +25,24 @@ h1{
 .free{color:green;}
 .busy{color:orange;font-weight:bold;}
 .full{color:red;font-weight:bold;}
-
 .admin{
   background:#eef;
   padding:10px;
   margin-bottom:15px;
   border-radius:10px;
 }
-
 input{
   width:100%;
-  padding:8px;
-  margin-bottom:8px;
-  font-size:16px;
+  padding:6px;
+  margin-bottom:6px;
 }
 button{
-  padding:8px 12px;
-  font-size:16px;
-}
-
-.updated{
-  color:#007aff;
-  font-size:14px;
+  padding:6px 12px;
   margin-top:5px;
+}
+.updated{
+  color:blue;
+  font-size:0.9em;
 }
 </style>
 </head>
@@ -66,7 +62,7 @@ button{
 
 <div class="admin" id="logoutArea" style="display:none">
   <button onclick="logout()">ログアウト</button>
-  <div id="updateMessage" class="updated"></div>
+  <p class="updated" id="updateMsg"></p>
 </div>
 
 <div id="parkingList"></div>
@@ -74,134 +70,114 @@ button{
 <script>
 /* ===== 初期データ ===== */
 const DEFAULT_PARKINGS = [
-  {id:1,name:"第1駐車場",max:200,now:50},
-  {id:2,name:"第2駐車場",max:180,now:30},
-  {id:3,name:"第3駐車場",max:150,now:120},
-  {id:4,name:"第4駐車場",max:100,now:20},
-  {id:5,name:"第5駐車場",max:120,now:90},
-  {id:6,name:"第6駐車場",max:80, now:70},
-  {id:7,name:"第7駐車場",max:60, now:55}
+ {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
+ {id:2,name:"第2駐車場",lat:26.2630,lng:127.7558,max:180,now:30},
+ {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120},
+ {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
+ {id:5,name:"第5駐車場",lat:26.2615,lng:127.7580,max:120,now:90}
 ];
 
-const ADMIN = {id:"admin", pass:"1234"};
-
-let isAdmin = false;
-let editedData = null;
-
-/* ===== 初期化 ===== */
 if(!localStorage.getItem("parkings")){
-  localStorage.setItem("parkings", JSON.stringify(DEFAULT_PARKINGS));
+ localStorage.setItem("parkings",JSON.stringify(DEFAULT_PARKINGS));
+}
+if(!localStorage.getItem("admin")){
+ localStorage.setItem("admin",JSON.stringify({id:"admin",pass:"1234"}));
 }
 
-/* ===== 描画 ===== */
+let isAdmin=false;
+
+/* ===== 表示 ===== */
 function render(){
-  const list = document.getElementById("parkingList");
-  list.innerHTML = "";
+ const list=document.getElementById("parkingList");
+ list.innerHTML="";
+ const parkings=JSON.parse(localStorage.getItem("parkings"));
 
-  const parkings = JSON.parse(localStorage.getItem("parkings")) || [];
+ parkings.forEach(p=>{
+   const remain=Math.max(p.max-p.now,0);
+   let status="free", text="空きあり";
+   if(remain===0){status="full";text="満車";}
+   else if(remain<10){status="busy";text="混雑";}
 
-  parkings.forEach(p=>{
-    const remain = Math.max(p.max - p.now, 0);
-    let status = "free";
-    let text = "空きあり";
+   const div=document.createElement("div");
+   div.className="parking";
+   div.innerHTML=`
+     <h3>${p.name}</h3>
+     <p class="${status}">${text}（${remain}台）</p>
+     <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank">
+       <button>📍 マップで見る</button>
+     </a>
+   `;
 
-    if(remain === 0){
-      status = "full";
-      text = "満車";
-    }else if(remain < 10){
-      status = "busy";
-      text = "混雑";
-    }
+   if(isAdmin){
+     div.innerHTML+=`
+       <hr>
+       <label>現在台数</label>
+       <input type="number" value="${p.now}" id="now-${p.id}">
+       <label>最大台数</label>
+       <input type="number" value="${p.max}" id="max-${p.id}">
+       <button onclick="save(${p.id})">更新</button>
+     `;
+   }
 
-    const div = document.createElement("div");
-    div.className = "parking";
-
-    div.innerHTML = `
-      <h3>${p.name}</h3>
-      <p class="${status}">${text}（${remain}台）</p>
-    `;
-
-    if(isAdmin){
-      div.innerHTML += `
-        <label>現在台数</label>
-        <input type="number" value="${p.now}" onchange="edit(${p.id}, 'now', this.value)">
-        <label>最大台数</label>
-        <input type="number" value="${p.max}" onchange="edit(${p.id}, 'max', this.value)">
-      `;
-    }
-
-    list.appendChild(div);
-  });
+   list.appendChild(div);
+ });
 }
 
-/* ===== 編集（即保存しない） ===== */
-function edit(id, key, value){
-  if(!editedData){
-    editedData = JSON.parse(localStorage.getItem("parkings"));
-  }
+/* ===== 更新 ===== */
+function save(id){
+ const parkings=JSON.parse(localStorage.getItem("parkings"));
+ const p=parkings.find(x=>x.id===id);
 
-  const p = editedData.find(x=>x.id===id);
-  value = Number(value);
+ const now=Number(document.getElementById(`now-${id}`).value);
+ const max=Number(document.getElementById(`max-${id}`).value);
 
-  if(isNaN(value)) return;
+ if(isNaN(now)||isNaN(max))return;
 
-  if(key === "now"){
-    p.now = Math.max(0, Math.min(value, p.max));
-  }
-  if(key === "max"){
-    p.max = Math.max(0, value);
-    if(p.now > p.max) p.now = p.max;
-  }
+ p.max=Math.max(0,max);
+ p.now=Math.max(0,Math.min(now,p.max));
 
-  document.getElementById("updateMessage").textContent = "⚠️ 未更新の変更があります";
+ localStorage.setItem("parkings",JSON.stringify(parkings));
+
+ document.getElementById("updateMsg").textContent="✅ 更新しました";
+ render();
 }
 
-/* ===== 更新ボタン ===== */
-function save(){
-  if(!editedData) return;
-
-  localStorage.setItem("parkings", JSON.stringify(editedData));
-  editedData = null;
-
-  document.getElementById("updateMessage").textContent = "✅ 更新しました";
-  render();
-}
-
-/* ===== ログイン関連 ===== */
+/* ===== ログイン ===== */
 function showLogin(){
-  document.getElementById("loginArea").style.display = "block";
+ document.getElementById("loginArea").style.display="block";
 }
 
 function login(){
-  const id = document.getElementById("loginId").value;
-  const pass = document.getElementById("loginPass").value;
+ const id=document.getElementById("loginId").value;
+ const pass=document.getElementById("loginPass").value;
+ const admin=JSON.parse(localStorage.getItem("admin"));
 
-  if(id === ADMIN.id && pass === ADMIN.pass){
-    isAdmin = true;
-    document.getElementById("loginArea").style.display = "none";
-    document.getElementById("adminArea").style.display = "none";
-    document.getElementById("logoutArea").style.display = "block";
-
-    document.getElementById("logoutArea").insertAdjacentHTML(
-      "beforeend",
-      `<button onclick="save()">更新する</button>`
-    );
-
-    render();
-  }else{
-    alert("IDかパスワードが違うよ");
-  }
+ if(id===admin.id && pass===admin.pass){
+   isAdmin=true;
+   document.getElementById("loginArea").style.display="none";
+   document.getElementById("adminArea").style.display="none";
+   document.getElementById("logoutArea").style.display="block";
+   render();
+ }else{
+   alert("IDかパスワードが違います");
+ }
 }
 
 function logout(){
-  isAdmin = false;
-  editedData = null;
-  document.getElementById("logoutArea").style.display = "none";
-  document.getElementById("adminArea").style.display = "block";
-  render();
+ isAdmin=false;
+ document.getElementById("logoutArea").style.display="none";
+ document.getElementById("adminArea").style.display="block";
+ render();
 }
 
+/* ===== 初期描画 ===== */
 render();
+
+/* ===== Service Worker（あれば） ===== */
+if("serviceWorker" in navigator){
+ navigator.serviceWorker.register("service-worker.js");
+}
 </script>
+
 </body>
 </html>
