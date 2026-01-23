@@ -76,7 +76,7 @@ function register(){
     return;
   }
   localStorage.setItem("adminUser", JSON.stringify({id, pass}));
-  alert("登録完了！ログインしてね");
+  alert("登録完了！ログインが可能になりました！");
   render();
 }
 
@@ -110,7 +110,7 @@ function renderAuth(){
 
   if(isLoggedIn()){
     area.innerHTML = `
-      <p>🛠 管理者ログイン中</p>
+      <p>管理者</p>
       <button onclick="logout()">サインアウト</button>
     `;
     return;
@@ -118,7 +118,7 @@ function renderAuth(){
 
   if(!getUser()){
     area.innerHTML = `
-      <h3>🆕 管理者登録</h3>
+      <h3>管理者登録</h3>
       <input id="regId" placeholder="ユーザーID">
       <input id="regPass" type="password" placeholder="パスワード">
       <br>
@@ -126,7 +126,7 @@ function renderAuth(){
     `;
   }else{
     area.innerHTML = `
-      <h3>🔐 管理者ログイン</h3>
+      <h3>管理者登録</h3>
       <input id="loginId" placeholder="ユーザーID">
       <input id="loginPass" type="password" placeholder="パスワード">
       <br>
@@ -174,3 +174,4 @@ render();
 
 </body>
 </html>
+
