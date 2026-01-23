@@ -22,17 +22,9 @@ h1{text-align:center;}
 .free{color:green;}
 .busy{color:orange;font-weight:bold;}
 .full{color:red;font-weight:bold;}
-button{
-  padding:6px 12px;
-  margin-top:6px;
-}
-input{
-  padding:4px;
-  width:70px;
-}
-#authArea input{
-  width:auto;
-}
+button{padding:6px 12px;margin-top:6px;}
+input{padding:4px;width:70px;}
+#authArea input{width:auto;}
 .admin-box{
   margin-top:8px;
   background:#f0f0f0;
@@ -57,7 +49,7 @@ const DEFAULT_PARKINGS = [
  {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20}
 ];
 
-/* ===== 駐車場データ ===== */
+/* ===== 駐車場 ===== */
 function loadParkings(){
   const data = JSON.parse(localStorage.getItem("parkings"));
   if(!Array.isArray(data)){
@@ -70,7 +62,7 @@ function saveParkings(data){
   localStorage.setItem("parkings", JSON.stringify(data));
 }
 
-/* ===== ユーザー管理 ===== */
+/* ===== ユーザー ===== */
 function getUser(){
   return JSON.parse(localStorage.getItem("adminUser"));
 }
@@ -80,8 +72,9 @@ function isLoggedIn(){
 
 /* ===== 登録 ===== */
 function register(){
-  const id = regId.value;
-  const pass = regPass.value;
+  const id = document.getElementById("regId").value;
+  const pass = document.getElementById("regPass").value;
+
   if(!id || !pass){
     alert("IDとパスワード入れて！");
     return;
@@ -94,11 +87,14 @@ function register(){
 /* ===== ログイン ===== */
 function login(){
   const user = getUser();
+  const id = document.getElementById("loginId").value;
+  const pass = document.getElementById("loginPass").value;
+
   if(!user){
     alert("先に登録して！");
     return;
   }
-  if(loginId.value === user.id && loginPass.value === user.pass){
+  if(id === user.id && pass === user.pass){
     localStorage.setItem("adminLogin","true");
     render();
   }else{
@@ -128,22 +124,20 @@ function renderAuth(){
     area.innerHTML = `
       <h3>🆕 管理者登録</h3>
       <input id="regId" placeholder="ユーザーID">
-      <input id="regPass" type="password" placeholder="パスワード">
-      <br>
+      <input id="regPass" type="password" placeholder="パスワード"><br>
       <button onclick="register()">登録</button>
     `;
   }else{
     area.innerHTML = `
       <h3>🔐 管理者ログイン</h3>
       <input id="loginId" placeholder="ユーザーID">
-      <input id="loginPass" type="password" placeholder="パスワード">
-      <br>
+      <input id="loginPass" type="password" placeholder="パスワード"><br>
       <button onclick="login()">サインイン</button>
     `;
   }
 }
 
-/* ===== Googleマップ ===== */
+/* ===== マップ ===== */
 function openMap(lat,lng){
   window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,"_blank");
 }
@@ -170,13 +164,10 @@ function updateParking(id){
 /* ===== 表示 ===== */
 function render(){
   renderAuth();
-
   const list = document.getElementById("parkingList");
   list.innerHTML = "";
 
-  const parkings = loadParkings();
-
-  parkings.forEach(p=>{
+  loadParkings().forEach(p=>{
     const remain = Math.max(p.max - p.now, 0);
     let cls="free", text="空きあり";
     if(remain===0){cls="full";text="満車";}
@@ -190,20 +181,18 @@ function render(){
       </div>
     ` : "";
 
-    const div = document.createElement("div");
-    div.className="parking";
-    div.innerHTML = `
-      <h3>${p.name}</h3>
-      <p class="${cls}">${text}（${remain}台）</p>
-      <button onclick="openMap(${p.lat},${p.lng})">📍 マップで見る</button>
-      ${adminUI}
+    list.innerHTML += `
+      <div class="parking">
+        <h3>${p.name}</h3>
+        <p class="${cls}">${text}（${remain}台）</p>
+        <button onclick="openMap(${p.lat},${p.lng})">📍 マップで見る</button>
+        ${adminUI}
+      </div>
     `;
-    list.appendChild(div);
   });
 }
 
 render();
 </script>
-
 </body>
 </html>
