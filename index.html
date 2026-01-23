@@ -40,43 +40,59 @@ button{
 <div id="parkingList"></div>
 
 <script>
-/* ===== 管理者ID・パス ===== */
-const ADMIN_ID = "admin";
-const ADMIN_PASS = "okigoku123";
-
 /* ===== 初期データ ===== */
 const DEFAULT_PARKINGS = [
  {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
  {id:2,name:"第2駐車場",lat:26.2630,lng:127.7558,max:180,now:30},
- {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120},
- {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
- {id:5,name:"第5駐車場",lat:26.2615,lng:127.7580,max:120,now:90},
- {id:6,name:"第6駐車場",lat:26.2609,lng:127.7575,max:80, now:70},
- {id:7,name:"第7駐車場",lat:26.2605,lng:127.7569,max:60, now:55}
+ {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120}
 ];
 
-/* ===== localStorage ===== */
+/* ===== 駐車場データ ===== */
 function loadParkings(){
- try{
-   const data = JSON.parse(localStorage.getItem("parkings"));
-   if(!Array.isArray(data)) throw "broken";
-   return data;
- }catch(e){
-   localStorage.setItem("parkings", JSON.stringify(DEFAULT_PARKINGS));
-   return DEFAULT_PARKINGS;
- }
+  const data = JSON.parse(localStorage.getItem("parkings"));
+  if(!Array.isArray(data)){
+    localStorage.setItem("parkings", JSON.stringify(DEFAULT_PARKINGS));
+    return DEFAULT_PARKINGS;
+  }
+  return data;
 }
 
-/* ===== 認証 ===== */
+/* ===== ユーザー管理 ===== */
+function getUser(){
+  return JSON.parse(localStorage.getItem("adminUser"));
+}
+
 function isLoggedIn(){
   return localStorage.getItem("adminLogin") === "true";
 }
 
+/* ===== 登録 ===== */
+function register(){
+  const id = document.getElementById("regId").value;
+  const pass = document.getElementById("regPass").value;
+
+  if(!id || !pass){
+    alert("IDとパスワード入れて！");
+    return;
+  }
+
+  localStorage.setItem("adminUser", JSON.stringify({id, pass}));
+  alert("登録完了！ログインしてね");
+  render();
+}
+
+/* ===== ログイン ===== */
 function login(){
   const id = document.getElementById("loginId").value;
   const pass = document.getElementById("loginPass").value;
+  const user = getUser();
 
-  if(id === ADMIN_ID && pass === ADMIN_PASS){
+  if(!user){
+    alert("先にユーザー登録して！");
+    return;
+  }
+
+  if(id === user.id && pass === user.pass){
     localStorage.setItem("adminLogin","true");
     render();
   }else{
@@ -84,6 +100,7 @@ function login(){
   }
 }
 
+/* ===== ログアウト ===== */
 function logout(){
   localStorage.removeItem("adminLogin");
   render();
@@ -98,9 +115,21 @@ function renderAuth(){
       <p>🛠 管理者ログイン中</p>
       <button onclick="logout()">サインアウト</button>
     `;
+    return;
+  }
+
+  if(!getUser()){
+    area.innerHTML = `
+      <h3>🆕 管理者登録</h3>
+      <input id="regId" placeholder="ユーザーID">
+      <input id="regPass" type="password" placeholder="パスワード">
+      <br>
+      <button onclick="register()">登録</button>
+    `;
   }else{
     area.innerHTML = `
-      <input id="loginId" placeholder="管理者ID">
+      <h3>🔐 管理者ログイン</h3>
+      <input id="loginId" placeholder="ユーザーID">
       <input id="loginPass" type="password" placeholder="パスワード">
       <br>
       <button onclick="login()">サインイン</button>
@@ -116,11 +145,10 @@ function render(){
   list.innerHTML = "";
 
   const parkings = loadParkings();
-
   parkings.forEach(p=>{
-    const remain = Math.max(p.max - p.now, 0);
+    const remain = p.max - p.now;
     let cls="free", text="空きあり";
-    if(remain===0){cls="full";text="満車";}
+    if(remain<=0){cls="full";text="満車";}
     else if(remain<10){cls="busy";text="混雑";}
 
     const div = document.createElement("div");
@@ -128,9 +156,6 @@ function render(){
     div.innerHTML = `
       <h3>${p.name}</h3>
       <p class="${cls}">${text}（${remain}台）</p>
-      <a href="https://www.google.com/maps?q=${p.lat},${p.lng}" target="_blank">
-        <button>📍 マップで見る</button>
-      </a>
     `;
     list.appendChild(div);
   });
