@@ -41,6 +41,12 @@ input{padding:4px;width:70px;}
 <div id="parkingList"></div>
 
 <script>
+/* ===== 固定 管理者アカウント ===== */
+const FIXED_ADMIN = {
+  id: "admin",
+  pass: "okigoku123"
+};
+
 /* ===== 初期データ ===== */
 const DEFAULT_PARKINGS = [
  {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
@@ -84,21 +90,23 @@ function register(){
   render();
 }
 
-/* ===== ログイン ===== */
+/* ===== ログイン（固定 or 登録） ===== */
 function login(){
-  const user = getUser();
   const id = document.getElementById("loginId").value;
   const pass = document.getElementById("loginPass").value;
+  const user = getUser();
 
-  if(!user){
-    alert("先に登録して！");
-    return;
-  }
-  if(id === user.id && pass === user.pass){
+  const fixedOK =
+    id === FIXED_ADMIN.id && pass === FIXED_ADMIN.pass;
+
+  const registeredOK =
+    user && id === user.id && pass === user.pass;
+
+  if(fixedOK || registeredOK){
     localStorage.setItem("adminLogin","true");
     render();
   }else{
-    alert("IDかパスワード違うよ");
+    alert("IDかパスワードが違うよ");
   }
 }
 
@@ -120,26 +128,25 @@ function renderAuth(){
     return;
   }
 
-  if(!getUser()){
-    area.innerHTML = `
-      <h3>🆕 管理者登録</h3>
-      <input id="regId" placeholder="ユーザーID">
-      <input id="regPass" type="password" placeholder="パスワード"><br>
-      <button onclick="register()">登録</button>
-    `;
-  }else{
-    area.innerHTML = `
-      <h3>🔐 管理者ログイン</h3>
-      <input id="loginId" placeholder="ユーザーID">
-      <input id="loginPass" type="password" placeholder="パスワード"><br>
-      <button onclick="login()">サインイン</button>
-    `;
-  }
+  area.innerHTML = `
+    <h3>🔐 管理者ログイン</h3>
+    <input id="loginId" placeholder="ユーザーID">
+    <input id="loginPass" type="password" placeholder="パスワード"><br>
+    <button onclick="login()">サインイン</button>
+    <hr>
+    <h3>🆕 管理者登録</h3>
+    <input id="regId" placeholder="新しいID">
+    <input id="regPass" type="password" placeholder="新しいパスワード"><br>
+    <button onclick="register()">登録</button>
+  `;
 }
 
 /* ===== マップ ===== */
 function openMap(lat,lng){
-  window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,"_blank");
+  window.open(
+    `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,
+    "_blank"
+  );
 }
 
 /* ===== 更新 ===== */
@@ -185,7 +192,9 @@ function render(){
       <div class="parking">
         <h3>${p.name}</h3>
         <p class="${cls}">${text}（${remain}台）</p>
-        <button onclick="openMap(${p.lat},${p.lng})">📍 マップで見る</button>
+        <button onclick="openMap(${p.lat},${p.lng})">
+          📍 マップで見る
+        </button>
         ${adminUI}
       </div>
     `;
