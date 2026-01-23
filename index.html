@@ -44,7 +44,8 @@ button{
 const DEFAULT_PARKINGS = [
  {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
  {id:2,name:"第2駐車場",lat:26.2630,lng:127.7558,max:180,now:30},
- {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120}
+ {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120},
+ {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20}
 ];
 
 /* ===== 駐車場データ ===== */
@@ -61,7 +62,6 @@ function loadParkings(){
 function getUser(){
   return JSON.parse(localStorage.getItem("adminUser"));
 }
-
 function isLoggedIn(){
   return localStorage.getItem("adminLogin") === "true";
 }
@@ -75,7 +75,6 @@ function register(){
     alert("IDとパスワード入れて！");
     return;
   }
-
   localStorage.setItem("adminUser", JSON.stringify({id, pass}));
   alert("登録完了！ログインしてね");
   render();
@@ -91,7 +90,6 @@ function login(){
     alert("先にユーザー登録して！");
     return;
   }
-
   if(id === user.id && pass === user.pass){
     localStorage.setItem("adminLogin","true");
     render();
@@ -137,6 +135,12 @@ function renderAuth(){
   }
 }
 
+/* ===== Googleマップ（アプリ優先） ===== */
+function openMap(lat, lng, name){
+  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${encodeURIComponent(name)}`;
+  window.open(url, "_blank");
+}
+
 /* ===== 表示 ===== */
 function render(){
   renderAuth();
@@ -145,10 +149,11 @@ function render(){
   list.innerHTML = "";
 
   const parkings = loadParkings();
+
   parkings.forEach(p=>{
-    const remain = p.max - p.now;
+    const remain = Math.max(p.max - p.now, 0);
     let cls="free", text="空きあり";
-    if(remain<=0){cls="full";text="満車";}
+    if(remain===0){cls="full";text="満車";}
     else if(remain<10){cls="busy";text="混雑";}
 
     const div = document.createElement("div");
@@ -156,6 +161,9 @@ function render(){
     div.innerHTML = `
       <h3>${p.name}</h3>
       <p class="${cls}">${text}（${remain}台）</p>
+      <button onclick="openMap(${p.lat}, ${p.lng}, '${p.name}')">
+        📍 マップで見る
+      </button>
     `;
     list.appendChild(div);
   });
