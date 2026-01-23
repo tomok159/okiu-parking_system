@@ -26,16 +26,25 @@ button{
   padding:6px 12px;
   margin-top:6px;
 }
+input{
+  padding:4px;
+  width:70px;
+}
 #authArea input{
-  padding:6px;
-  margin:4px;
+  width:auto;
+}
+.admin-box{
+  margin-top:8px;
+  background:#f0f0f0;
+  padding:8px;
+  border-radius:6px;
 }
 </style>
 </head>
 
 <body>
 
-<h1>🚗 沖国 駐車場状況管理アプリ</h1>
+<h1>🚗 沖国 駐車場状況</h1>
 <div id="authArea" style="text-align:center;margin-bottom:15px;"></div>
 <div id="parkingList"></div>
 
@@ -45,10 +54,7 @@ const DEFAULT_PARKINGS = [
  {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
  {id:2,name:"第2駐車場",lat:26.2630,lng:127.7558,max:180,now:30},
  {id:3,name:"第3駐車場",lat:26.2635,lng:127.7549,max:150,now:120},
- {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
- {id:4,name:"第5駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
- {id:4,name:"第6駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
- {id:4,name:"第7駐車場",lat:26.2619,lng:127.7572,max:100,now:20},
+ {id:4,name:"第4駐車場",lat:26.2619,lng:127.7572,max:100,now:20}
 ];
 
 /* ===== 駐車場データ ===== */
@@ -59,6 +65,9 @@ function loadParkings(){
     return DEFAULT_PARKINGS;
   }
   return data;
+}
+function saveParkings(data){
+  localStorage.setItem("parkings", JSON.stringify(data));
 }
 
 /* ===== ユーザー管理 ===== */
@@ -71,29 +80,25 @@ function isLoggedIn(){
 
 /* ===== 登録 ===== */
 function register(){
-  const id = document.getElementById("regId").value;
-  const pass = document.getElementById("regPass").value;
-
+  const id = regId.value;
+  const pass = regPass.value;
   if(!id || !pass){
     alert("IDとパスワード入れて！");
     return;
   }
   localStorage.setItem("adminUser", JSON.stringify({id, pass}));
-  alert("登録完了！ログインが可能になりました！");
+  alert("登録完了！");
   render();
 }
 
 /* ===== ログイン ===== */
 function login(){
-  const id = document.getElementById("loginId").value;
-  const pass = document.getElementById("loginPass").value;
   const user = getUser();
-
   if(!user){
-    alert("先にユーザー登録して！");
+    alert("先に登録して！");
     return;
   }
-  if(id === user.id && pass === user.pass){
+  if(loginId.value === user.id && loginPass.value === user.pass){
     localStorage.setItem("adminLogin","true");
     render();
   }else{
@@ -113,7 +118,7 @@ function renderAuth(){
 
   if(isLoggedIn()){
     area.innerHTML = `
-      <p>管理者</p>
+      <p>🛠 管理者ログイン中</p>
       <button onclick="logout()">サインアウト</button>
     `;
     return;
@@ -121,7 +126,7 @@ function renderAuth(){
 
   if(!getUser()){
     area.innerHTML = `
-      <h3>管理者登録</h3>
+      <h3>🆕 管理者登録</h3>
       <input id="regId" placeholder="ユーザーID">
       <input id="regPass" type="password" placeholder="パスワード">
       <br>
@@ -129,7 +134,7 @@ function renderAuth(){
     `;
   }else{
     area.innerHTML = `
-      <h3>管理者登録</h3>
+      <h3>🔐 管理者ログイン</h3>
       <input id="loginId" placeholder="ユーザーID">
       <input id="loginPass" type="password" placeholder="パスワード">
       <br>
@@ -138,10 +143,28 @@ function renderAuth(){
   }
 }
 
-/* ===== Googleマップ（アプリ優先） ===== */
-function openMap(lat, lng, name){
-  const url = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}&query_place_id=${encodeURIComponent(name)}`;
-  window.open(url, "_blank");
+/* ===== Googleマップ ===== */
+function openMap(lat,lng){
+  window.open(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`,"_blank");
+}
+
+/* ===== 更新 ===== */
+function updateParking(id){
+  const parkings = loadParkings();
+  const p = parkings.find(x=>x.id===id);
+
+  const max = Number(document.getElementById(`max-${id}`).value);
+  const now = Number(document.getElementById(`now-${id}`).value);
+
+  if(now > max){
+    alert("今の台数が最大を超えてる！");
+    return;
+  }
+
+  p.max = max;
+  p.now = now;
+  saveParkings(parkings);
+  render();
 }
 
 /* ===== 表示 ===== */
@@ -159,14 +182,21 @@ function render(){
     if(remain===0){cls="full";text="満車";}
     else if(remain<10){cls="busy";text="混雑";}
 
+    const adminUI = isLoggedIn() ? `
+      <div class="admin-box">
+        最大 <input id="max-${p.id}" type="number" value="${p.max}">
+        現在 <input id="now-${p.id}" type="number" value="${p.now}">
+        <button onclick="updateParking(${p.id})">更新</button>
+      </div>
+    ` : "";
+
     const div = document.createElement("div");
     div.className="parking";
     div.innerHTML = `
       <h3>${p.name}</h3>
       <p class="${cls}">${text}（${remain}台）</p>
-      <button onclick="openMap(${p.lat}, ${p.lng}, '${p.name}')">
-        📍 マップで見る
-      </button>
+      <button onclick="openMap(${p.lat},${p.lng})">📍 マップで見る</button>
+      ${adminUI}
     `;
     list.appendChild(div);
   });
@@ -177,5 +207,3 @@ render();
 
 </body>
 </html>
-
-
