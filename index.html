@@ -23,8 +23,7 @@ h1{text-align:center;}
 .busy{color:orange;font-weight:bold;}
 .full{color:red;font-weight:bold;}
 button{padding:6px 12px;margin-top:6px;}
-input{padding:4px;width:70px;}
-#authArea input{width:auto;}
+input{padding:4px;width:120px;}
 .admin-box{
   margin-top:8px;
   background:#f0f0f0;
@@ -41,13 +40,13 @@ input{padding:4px;width:70px;}
 <div id="parkingList"></div>
 
 <script>
-/* ===== 固定 管理者アカウント ===== */
+/* ===== 固定 管理者 ===== */
 const FIXED_ADMIN = {
   id: "admin",
   pass: "okigoku123"
 };
 
-/* ===== 初期データ ===== */
+/* ===== 初期駐車場 ===== */
 const DEFAULT_PARKINGS = [
  {id:1,name:"第1駐車場",lat:26.2625,lng:127.7564,max:200,now:50},
  {id:2,name:"第2駐車場",lat:26.2630,lng:127.7558,max:180,now:30},
@@ -68,7 +67,7 @@ function saveParkings(data){
   localStorage.setItem("parkings", JSON.stringify(data));
 }
 
-/* ===== ユーザー ===== */
+/* ===== 管理者 ===== */
 function getUser(){
   return JSON.parse(localStorage.getItem("adminUser"));
 }
@@ -82,25 +81,22 @@ function register(){
   const pass = document.getElementById("regPass").value;
 
   if(!id || !pass){
-    alert("IDとパスワード入れて！");
+    alert("IDとパスワードを入力してね");
     return;
   }
+
   localStorage.setItem("adminUser", JSON.stringify({id, pass}));
-  alert("登録完了！");
-  render();
+  alert("登録完了！このIDでログインしてね");
 }
 
-/* ===== ログイン（固定 or 登録） ===== */
+/* ===== ログイン ===== */
 function login(){
   const id = document.getElementById("loginId").value;
   const pass = document.getElementById("loginPass").value;
   const user = getUser();
 
-  const fixedOK =
-    id === FIXED_ADMIN.id && pass === FIXED_ADMIN.pass;
-
-  const registeredOK =
-    user && id === user.id && pass === user.pass;
+  const fixedOK = id === FIXED_ADMIN.id && pass === FIXED_ADMIN.pass;
+  const registeredOK = user && id === user.id && pass === user.pass;
 
   if(fixedOK || registeredOK){
     localStorage.setItem("adminLogin","true");
@@ -130,10 +126,12 @@ function renderAuth(){
 
   area.innerHTML = `
     <h3>🔐 管理者ログイン</h3>
-    <input id="loginId" placeholder="ユーザーID">
+    <input id="loginId" placeholder="ID">
     <input id="loginPass" type="password" placeholder="パスワード"><br>
     <button onclick="login()">サインイン</button>
+
     <hr>
+
     <h3>🆕 管理者登録</h3>
     <input id="regId" placeholder="新しいID">
     <input id="regPass" type="password" placeholder="新しいパスワード"><br>
@@ -158,7 +156,7 @@ function updateParking(id){
   const now = Number(document.getElementById(`now-${id}`).value);
 
   if(now > max){
-    alert("今の台数が最大を超えてる！");
+    alert("現在台数が最大を超えてる！");
     return;
   }
 
@@ -178,30 +176,4 @@ function render(){
     const remain = Math.max(p.max - p.now, 0);
     let cls="free", text="空きあり";
     if(remain===0){cls="full";text="満車";}
-    else if(remain<10){cls="busy";text="混雑";}
-
-    const adminUI = isLoggedIn() ? `
-      <div class="admin-box">
-        最大 <input id="max-${p.id}" type="number" value="${p.max}">
-        現在 <input id="now-${p.id}" type="number" value="${p.now}">
-        <button onclick="updateParking(${p.id})">更新</button>
-      </div>
-    ` : "";
-
-    list.innerHTML += `
-      <div class="parking">
-        <h3>${p.name}</h3>
-        <p class="${cls}">${text}（${remain}台）</p>
-        <button onclick="openMap(${p.lat},${p.lng})">
-          📍 マップで見る
-        </button>
-        ${adminUI}
-      </div>
-    `;
-  });
-}
-
-render();
-</script>
-</body>
-</html>
+    else if(remain<10){cls="busy";text="混雑"
